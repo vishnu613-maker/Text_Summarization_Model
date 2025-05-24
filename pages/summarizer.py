@@ -1,17 +1,15 @@
 import streamlit as st
 import os
 from PIL import Image
-from Hybrid_summarizer.model_loader import load_abstracter, load_extractor
+from Hybrid_summarizer.model_loader import load_abstracter
 from Hybrid_summarizer.hybrid_summarizer import hybrid_summarize
 from NavFooter import NavBar, footer
 import PyPDF2
 import docx
 
-
-
 # Set page configuration
 st.set_page_config(
-    page_title="DeepGreen - Deforestation Detection",
+    page_title="Hybrid Text Summarizer",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -30,19 +28,15 @@ def load_images(image_paths):
 # Define paths to images
 image_paths = {
     "summ": "assets/summerization.jpg"
-    
 }
 images, missing = load_images(image_paths)
 for path in missing:
     st.warning(f"Image not found: {path}")
 
-
 NavBar()
 
 if "summ" in images:
     st.image(images["summ"], use_container_width=True, output_format="PNG", caption=None)
-
-
 
 st.markdown("<h2 style='text-align: center;'>Select the Format</h2>", unsafe_allow_html=True)
 st.markdown("<br><br>", unsafe_allow_html=True)
@@ -51,10 +45,9 @@ st.markdown("<br><br>", unsafe_allow_html=True)
 @st.cache_resource
 def get_models():
     abstracter, tokenizer = load_abstracter("models/t5_abstracter")
-    extractor = load_extractor("models/bert_extractor")
-    return abstracter, tokenizer, extractor
+    return abstracter, tokenizer
 
-abstracter, tokenizer, extractor = get_models()
+abstracter, tokenizer = get_models()
 
 # --- Session state for workflow management ---
 if 'selected_opt' not in st.session_state:
@@ -98,7 +91,6 @@ if word_opt:
 
 # --- INPUT HANDLING ---
 if st.session_state.selected_opt == "text":
-    # Only allow editing if not done
     if not st.session_state.text_done:
         text_input = st.text_area("Paste your text here for summarization", value=st.session_state.uploaded_text, height=250)
         if st.button("Done"):
@@ -144,7 +136,6 @@ if st.session_state.text_done and st.session_state.uploaded_text and not st.sess
             with st.spinner("Summarizing..."):
                 summary = hybrid_summarize(
                     st.session_state.uploaded_text,
-                    extractor=extractor,
                     abstracter=abstracter,
                     tokenizer=tokenizer,
                     num_sentences=5,
@@ -172,7 +163,5 @@ st.markdown("""
     .stButton>button { width: 100%; }
 </style>
 """, unsafe_allow_html=True)
-
-
 
 footer()

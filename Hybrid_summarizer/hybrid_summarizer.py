@@ -1,5 +1,12 @@
 import nltk
 from .utils import smart_capitalize_sentences
+from sentence_transformers import SentenceTransformer, util
+
+# Ensure NLTK punkt is available (safe to call repeatedly)
+try:
+    nltk.data.find('tokenizers/punkt')
+except LookupError:
+    nltk.download('punkt')
 
 def chunk_text(text, max_words=400, overlap=50):
     words = text.split()
@@ -11,9 +18,27 @@ def chunk_text(text, max_words=400, overlap=50):
         i += max_words - overlap
     return chunks
 
+def extractive_summary(text, num_sentences=5):
+    """
+    Extract the most representative sentences from the text using sentence-transformers.
+    """
+    model = SentenceTransformer('all-MiniLM-L6-v2')
+    # Use nltk to split into sentences
+    sentences = [s.strip() for s in nltk.sent_tokenize(text) if len(s.strip()) > 20]
+    if not sentences:
+        return text
+    # Get embeddings
+    embeddings = model.encode(sentences)
+    doc_embedding = model.encode([text])
+    scores = util.cos_sim(embeddings, doc_embedding)[..., 0]
+    # Get indices of top N sentences
+    top_indices = scores.argsort(descending=True)[:num_sentences]
+    # Return sentences in original order
+    summary = ' '.join([sentences[i] for i in sorted(top_indices.cpu().numpy())])
+    return summary
+
 def hybrid_summarize(
     article,
-    extractor,
     abstracter,
     tokenizer,
     num_sentences=5,
@@ -22,6 +47,13 @@ def hybrid_summarize(
     chunk_words=400,
     chunk_overlap=50
 ):
+    """
+    Hybrid extractive-abstractive summarization.
+    1. Chunk the article if it's long.
+    2. For each chunk, extract key sentences.
+    3. Pass the extractive summary to the abstractive model.
+    4. Concatenate and trim the final summary.
+    """
     article_chunks = chunk_text(article, max_words=chunk_words, overlap=chunk_overlap)
     chunk_summaries = []
     for chunk in article_chunks:
@@ -31,7 +63,7 @@ def hybrid_summarize(
             extracted = chunk
         else:
             try:
-                extracted = extractor(chunk, num_sentences=min(num_sentences, sentence_count))
+                extracted = extractive_summary(chunk, num_sentences=min(num_sentences, sentence_count))
             except Exception:
                 extracted = chunk
         input_text = "summarize: " + extracted

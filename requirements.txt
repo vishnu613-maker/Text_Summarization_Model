@@ -1,7 +1,7 @@
 streamlit
 transformers
 torch
-summarizer
+sentence-transformers
 nltk
 spacy
 PyPDF2
