@@ -9,7 +9,7 @@ import docx
 
 # Set page configuration
 st.set_page_config(
-    page_title="Hybrid Text Summarizer",
+    page_title="DeepDigest - Text Summarization Model",
     layout="wide",
     initial_sidebar_state="collapsed"
 )

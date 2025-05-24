@@ -3,7 +3,7 @@ from NavFooter import NavBar, footer
 
 # Page configuration
 st.set_page_config(
-    page_title="Contact Us - DeepGreen",
+    page_title="Contact Us - DeepDigest",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
